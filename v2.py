@@ -40,17 +40,20 @@ def play_videoFile(filePath):
     frm = 0    
     total_frame = 0
     prev_frm = -1
-    frm_step = 1
+    frm_step = 0
     mark = ["[-]","[>]","[<]"] 
     t_start = 0
     t_end = 1
+    step = False
+    first = True
 
 
     while True:
         fps = int(1 / (t_end - t_start))
         t_start = time.time()
 
-        if frm_step > 0 and frm == len(vid_buffer):
+        if (frm_step > 0 and frm == len(vid_buffer)) or first:
+            first = False
             ret_val, frame = cap.read()
             vid_buffer.append(frame)
 
@@ -77,23 +80,23 @@ def play_videoFile(filePath):
         # the progress bar stuff
         abs_frm = total_frame+frm-buffer_len+1
 
-        
-        # progress bar frame
-        cv2.rectangle(display_frame, (10,v_height - 20), (v_width-10, v_height-10), (255,255,255), 1) 
-
         # progress bar
-        cv2.rectangle(display_frame, (10,v_height - 20), (int(10 + (v_width-20)*abs_frm/v_length), v_height-10), (255,255,255), -1) 
+        cv2.rectangle(display_frame, (11,v_height - 19), (int(11 + (v_width-22)*abs_frm/v_length), v_height-11), (125,125,125), -1) 
 
         # buffer bar
-        cv2.rectangle(display_frame, (int(10 + (v_width-20)*(total_frame - buffer_len)/v_length),v_height - 30), (int(10 + (v_width-20)*total_frame/v_length), v_height-25), (0,0,255), -1) 
+        cv2.rectangle(display_frame, (int(11 + (v_width-22)*(total_frame - buffer_len)/v_length),v_height - 24), (int(11 + (v_width-22)*total_frame/v_length), v_height-20), (0,0,255), -1) 
+
+        # progress bar frame
+        cv2.rectangle(display_frame, (10,v_height - 25), (v_width-10, v_height-10), (255,255,255), 1) 
 
         # Using cv2.putText() method
         txt_string = f"{mark[frm_step]} AbsFrame: {abs_frm}  BufferFrm: {frm} HeadPos: {total_frame} FPS: {fps}"
 
         prev_frm = frm
         frm += frm_step
-        
-
+        if step:
+            frm_step = 0
+            step = False
 
         if frm < 0:
             frm = 0
@@ -126,6 +129,14 @@ def play_videoFile(filePath):
 
         elif the_pressed_key == ord('l'):
             frm_step = 1
+
+        elif the_pressed_key == ord('J'):
+            frm_step = -1
+            step = True
+
+        elif the_pressed_key == ord('L'):
+            frm_step = 1
+            step = True
 
         t_end = time.time()
 
