@@ -9,20 +9,27 @@ import numpy as np
 def play_videoFile(filePath):
 
     cap = cv2.VideoCapture(filePath)
+
+    if not cap.isOpened(): 
+        print(f"Can't open file {filePath}")
+        return
+
+    v_length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    v_width  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    v_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    v_fps    = cap.get(cv2.CAP_PROP_FPS)
+
+    print(f"Got video: {v_width}x{v_height} px, len:{v_length}frames, fps:{v_fps}")
+    
     cv2.namedWindow('Video output window',cv2.WINDOW_AUTOSIZE)
 
     # making a matrix buffer for the video
     vid_buffer = []
 
-    # reading initial frames to buffer
-    # for _ in range(200):
-    #     ret_val, frame = cap.read()
-    #     vid_buffer.append(frame)
-
     # text related variables
     font = cv2.FONT_HERSHEY_SIMPLEX
     org = (50, 50)
-    fontScale = 1
+    fontScale = 0.7
     color = (255, 255, 255)
     thickness = 1
        
@@ -64,10 +71,24 @@ def play_videoFile(filePath):
         if frm >= buffer_len:
             frm = buffer_len-1
 
+
         display_frame = copy.copy(vid_buffer[frm])
 
+        # the progress bar stuff
+        abs_frm = total_frame+frm-buffer_len+1
+
+        
+        # progress bar frame
+        cv2.rectangle(display_frame, (10,v_height - 20), (v_width-10, v_height-10), (255,255,255), 1) 
+
+        # progress bar
+        cv2.rectangle(display_frame, (10,v_height - 20), (int(10 + (v_width-20)*abs_frm/v_length), v_height-10), (255,255,255), -1) 
+
+        # buffer bar
+        cv2.rectangle(display_frame, (int(10 + (v_width-20)*(total_frame - buffer_len)/v_length),v_height - 30), (int(10 + (v_width-20)*total_frame/v_length), v_height-25), (0,0,255), -1) 
+
         # Using cv2.putText() method
-        txt_string = f"{mark[frm_step]} AbsFrame: {total_frame+frm-buffer_len+1}  BufferFrm: {frm} HeadPos: {total_frame} FPS: {fps}"
+        txt_string = f"{mark[frm_step]} AbsFrame: {abs_frm}  BufferFrm: {frm} HeadPos: {total_frame} FPS: {fps}"
 
         prev_frm = frm
         frm += frm_step
@@ -146,7 +167,7 @@ def get_csv_data(csv_file, skip=8, delimiter=';'):
 
 def main():
     get_csv_data('/Users/tymancjo/LocalGit/video/sc_data_example/11435.txt')
-    # play_videoFile('/Users/tymancjo/LocalGit/video/sc_data_example/11435.mp4')
+    play_videoFile('/Users/tymancjo/LocalGit/video/sc_data_example/11435.mp4')
 
 if __name__ == '__main__':
     main()
