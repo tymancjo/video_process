@@ -1,12 +1,11 @@
 import cv2
-import random
 import copy
 import sys
 import time
 import csv
 import numpy as np
 
-def play_videoFile(filePath):
+def play_videoFile(filePath, data, vid_sync, data_sync):
 
     cap = cv2.VideoCapture(filePath)
 
@@ -47,6 +46,12 @@ def play_videoFile(filePath):
     step = False
     first = True
 
+    # Figuring out the max possible play frame of video or data
+    in_samples, n_cols = data.shape
+    # Need to analyze here the data sets and figure out the first video and data frame that is possible to display. And as well the last one. 
+
+
+    
 
     while True:
         fps = int(1 / (t_end - t_start))
@@ -168,17 +173,35 @@ def get_csv_data(csv_file, skip=8, delimiter=';'):
 
                 data_set.append(data_row)
             else:
-                print(row)
+                print("skipped: ",row)
 
 
     data_set = np.array(data_set)
-    print(data_set[:,0])
+    return data_set
+
+def normalize(data_array):
+
+    in_samples, n_cols = data_array.shape
+
+    for col in range(n_cols):
+        amplitude = max(abs(data_array[:,col].max()),abs(data_array[:,col].min()))
+        print(f"Column {col}, Amplitude {amplitude}")
+        if amplitude != 0:
+            data_array[:,col] /= amplitude
+            np.append(data_array[:,col], amplitude)
+        else:
+            np.append(data_array[:,col], 0)
+    return data_array
+
 
 
 
 def main():
-    get_csv_data('/Users/tymancjo/LocalGit/video/sc_data_example/11435.txt')
-    play_videoFile('/Users/tymancjo/LocalGit/video/sc_data_example/11435.mp4')
+    data = get_csv_data('/Users/tymancjo/LocalGit/video/sc_data_example/11435.txt')
+    data = normalize(data)
+    video_file = '/Users/tymancjo/LocalGit/video/sc_data_example/11435.mp4'
+
+    play_videoFile(video_file,data,500,2345)
 
 if __name__ == '__main__':
     main()
