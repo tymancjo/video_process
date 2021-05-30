@@ -71,20 +71,24 @@ def play_videoFile(filePath, data, vid_sync, data_sync):
         data_step = int(math.ceil(plot_data / data_pixel))
         pixel_step = 1
 
-    data_pixel = int(plot_data / data_step) 
+    data_pixel = int((plot_data / data_step) * pixel_step) 
+    pixel_step_f = data_pixel / plot_data
     plot_x0 = int((plot_width - data_pixel) / 2)
+    print(f"Plot spec. pix stp:{pixel_step}, data stp:{data_step}, plot dta:{plot_data}")
 
     # Plotting the full plots in the created frame
     data_point = start_data_sample
-    for px in range(plot_x0,data_pixel,pixel_step):
+    px = plot_x0
+    for _ in range(int(plot_data/data_step)):
         y0 = int(plot_height / 2)
         y1 = int(y0 - data[data_point,1] * 100)
         y2 = int(y0 - data[data_point+data_step,1] * 100)
-        x1 = px
-        x2 = px + pixel_step
-
+        x1 = int(px)
+        x2 = int(px + pixel_step_f * data_step)
+        
         cv2.line(plot_frame, (x1,y1), (x2,y2), (255,255,0), 1)
         data_point += data_step
+        px += pixel_step_f * data_step
 
 
         
@@ -138,7 +142,7 @@ def play_videoFile(filePath, data, vid_sync, data_sync):
         txt_string = f"{mark[frm_step]} AbsFrame: {abs_frm}  BufferFrm: {frm} HeadPos: {total_frame} FPS: {fps}"
 
         # Placing play head on the plot window
-        play_head_x = plot_x0 + abs_frm * pixel_step
+        play_head_x = round(plot_x0 + abs_frm * pixel_step_f)
         cv2.line(plot_frame_full, (play_head_x,0), (play_head_x,plot_height), (0,0,255), 1)
 
         prev_frm = frm
