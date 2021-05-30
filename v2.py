@@ -4,6 +4,7 @@ import sys
 import time
 import csv
 import numpy as np
+import math
 
 def play_videoFile(filePath, data, vid_sync, data_sync):
 
@@ -47,17 +48,54 @@ def play_videoFile(filePath, data, vid_sync, data_sync):
     first = True
 
     # Figuring out the max possible play frame of video or data
-    in_samples, n_cols = data.shape
+    n_samples, n_cols = data.shape
     # Need to analyze here the data sets and figure out the first video and data frame that is possible to display. And as well the last one. 
-
-
     
+    # This is for now, it need ot be more robust 
+    start_data_sample = data_sync - vid_sync
+    end_frame = min(n_samples-start_data_sample-1, v_length)
+    print(f"End frame: {end_frame}")
+
+    # Preparing space for the full plot
+    plot_height = 300
+    plot_width = v_width
+    plot_frame = np.zeros((300,plot_width,3),np.uint8)
+
+    plot_data = (end_frame - start_data_sample)
+    data_step = 1
+    data_pixel = plot_width - 20
+    pixel_step = int(data_pixel / plot_data)
+
+    if pixel_step < 1:
+        # we need to make data step bigger
+        data_step = int(math.ceil(plot_data / data_pixel))
+        pixel_step = 1
+
+    data_pixel = int(plot_data / data_step) 
+    plot_x0 = int((plot_width - data_pixel) / 2)
+
+    # Plotting the full plots in the created frame
+    data_point = start_data_sample
+    for px in range(plot_x0,data_pixel,pixel_step):
+        y0 = int(plot_height / 2)
+        y1 = int(y0 - data[data_point,1] * 100)
+        y2 = int(y0 - data[data_point+data_step,1] * 100)
+        x1 = px
+        x2 = px + pixel_step
+
+        cv2.line(plot_frame, (x1,y1), (x2,y2), (255,255,0), 1)
+        data_point += data_step
+
+
+        
+
+
 
     while True:
         fps = int(1 / (t_end - t_start))
         t_start = time.time()
 
-        if (frm_step > 0 and frm == len(vid_buffer)) or first:
+        if (frm_step > 0 and frm == len(vid_buffer) and total_frame < end_frame) or first:
             first = False
             ret_val, frame = cap.read()
             vid_buffer.append(frame)
@@ -81,6 +119,8 @@ def play_videoFile(filePath, data, vid_sync, data_sync):
 
 
         display_frame = copy.copy(vid_buffer[frm])
+        plot_frame_full = copy.copy(plot_frame)
+        # plot_frame = np.zeros((300,v_width,3),np.uint8)
 
         # the progress bar stuff
         abs_frm = total_frame+frm-buffer_len+1
@@ -97,6 +137,10 @@ def play_videoFile(filePath, data, vid_sync, data_sync):
         # Using cv2.putText() method
         txt_string = f"{mark[frm_step]} AbsFrame: {abs_frm}  BufferFrm: {frm} HeadPos: {total_frame} FPS: {fps}"
 
+        # Placing play head on the plot window
+        play_head_x = plot_x0 + abs_frm * pixel_step
+        cv2.line(plot_frame_full, (play_head_x,0), (play_head_x,plot_height), (0,0,255), 1)
+
         prev_frm = frm
         frm += frm_step
         if step:
@@ -107,20 +151,16 @@ def play_videoFile(filePath, data, vid_sync, data_sync):
             frm = 0
             frm_step = 0
 
-        # for y in range(10):
-           #  for x in range(10):
-              #   line_thickness = random.randint(1,5)
-              #   x1 = 10+x*192
-              #   x2 = x1+192
-              #   y1 = y*100+random.randint(1,100)
-              #   y2 = y*100+random.randint(1,100)
-
-              #   cv2.line(display_frame, (x1, y1), (x2, y2), (random.randint(50,255), random.randint(50,255), random.randint(50,255)), thickness=line_thickness)
 
         
         image = cv2.putText(display_frame, txt_string, org, font, 
                            fontScale, color, thickness, cv2.LINE_AA)
-        cv2.imshow('Video Life2Coding', display_frame)
+
+        # Stacking images arrays 
+        # display = np.vstack((display_frame, plot_frame))
+        cv2.imshow('Video Frame', display_frame)
+        cv2.imshow('Plot Frame', plot_frame_full)
+        # cv2.imshow('Stacked', display)
 
         the_pressed_key = cv2.waitKey(1)
         if  the_pressed_key == 27:
@@ -201,7 +241,7 @@ def main():
     data = normalize(data)
     video_file = '/Users/tymancjo/LocalGit/video/sc_data_example/11435.mp4'
 
-    play_videoFile(video_file,data,500,2345)
+    play_videoFile(video_file,data,500,500)
 
 if __name__ == '__main__':
     main()
