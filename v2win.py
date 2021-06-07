@@ -6,7 +6,7 @@ import csv
 import numpy as np
 import math
 
-def play_videoFile(filePath, data, vid_sync, data_sync):
+def play_videoFile(filePath, data, vid_sync, data_sync, sample_shift=0):
 
     cap = cv2.VideoCapture(filePath)
 
@@ -37,6 +37,7 @@ def play_videoFile(filePath, data, vid_sync, data_sync):
     buffer_size = 100 #[frames]
     frm = 0    
     total_frame = 0
+    video_frame = 0
     prev_frm = -1
     frm_step = 0
     mark = ["[-]","[>]","[<]"] 
@@ -48,10 +49,25 @@ def play_videoFile(filePath, data, vid_sync, data_sync):
     # Figuring out the max possible play frame of video or data
     n_samples, n_cols = data.shape
     # Need to analyze here the data sets and figure out the first video and data frame that is possible to display. And as well the last one. 
-    
-    # This is for now, it need ot be more robust 
-    start_data_sample = data_sync - vid_sync
-    end_frame = min(n_samples-start_data_sample-1, v_length)
+
+    sample_shift = max(0, sample_shift)
+
+    start_data_sample = data_sync - vid_sync 
+    if start_data_sample < 0:
+        vid_start = abs(start_data_sample)
+        start_data_sample = 0
+        for _ in range(vid_start):
+            _, _ = cap.read()
+            video_frame += 1
+
+    start_data_sample += sample_shift
+    if sample_shift > 0:
+        for _ in range(sample_shift):
+            _, _ = cap.read()
+            video_frame += 1
+
+
+    end_frame = min(n_samples-start_data_sample-1, v_length - video_frame)
     print(f"End frame: {end_frame}")
 
     # Preparing space for the full plot
@@ -59,7 +75,8 @@ def play_videoFile(filePath, data, vid_sync, data_sync):
     plot_width = v_width
     plot_frame = np.zeros((plot_height * n_cols,plot_width,3),np.uint8)
 
-    plot_data = (end_frame - start_data_sample)
+    # plot_data = (end_frame - start_data_sample)
+    plot_data = end_frame 
     data_step = 1
     data_pixel = plot_width - 20
     pixel_step = int(data_pixel / plot_data)
@@ -269,11 +286,17 @@ def prepare_to_show(data, plots):
 
 def main():
     data = get_csv_data('c:\\x\\11435.txt')
+    temp_data = normalize(data)
+    sync_data_index = np.argmax(temp_data[:,-2] == 1)
+    print(f"Sync data index: {sync_data_index}")
+    del(temp_data)
+
+
     data = prepare_to_show(data,[(2,-3),-4])
     data = normalize(data)
 
     video_file = 'c:\\x\\11435.mp4'
-    play_videoFile(video_file,data,500,500)
+    play_videoFile(video_file,data,500,sync_data_index, sample_shift=770)
 
 if __name__ == '__main__':
     main()
