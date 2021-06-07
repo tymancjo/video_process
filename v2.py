@@ -95,21 +95,24 @@ def play_videoFile(filePath, data, vid_sync, data_sync):
 
 
 
+    # For convenience 
+    v_length = plot_data
+
     while True:
         fps = int(1 / (t_end - t_start))
         t_start = time.time()
 
         if (frm_step > 0 and frm == len(vid_buffer) and total_frame < end_frame) or first:
-            first = False
             ret_val, frame = cap.read()
             vid_buffer.append(frame)
 
-            if total_frame == 0:
+            if first:
                 frame_mem_size = sys.getsizeof(vid_buffer[-1])
                 print(f"Frame memory size: {frame_mem_size} Bytes")
                 buffer_size = int( buffer_mem / (frame_mem_size / (1024*1024)) )
                 print(f"Buffer set to {buffer_size} frames")
 
+            first = False
 
             total_frame += frm_step 
             buffer_len = len(vid_buffer)
@@ -124,7 +127,6 @@ def play_videoFile(filePath, data, vid_sync, data_sync):
 
         display_frame = copy.copy(vid_buffer[frm])
         plot_frame_full = copy.copy(plot_frame)
-        # plot_frame = np.zeros((300,v_width,3),np.uint8)
 
         # the progress bar stuff
         abs_frm = total_frame+frm-buffer_len+1
@@ -145,6 +147,9 @@ def play_videoFile(filePath, data, vid_sync, data_sync):
         play_head_x = round(plot_x0 + abs_frm * pixel_step_f)
         cv2.line(plot_frame_full, (play_head_x,0), (play_head_x,plot_height), (0,0,255), 1)
 
+        image = cv2.putText(display_frame, txt_string, org, font, 
+                        fontScale, color, thickness, cv2.LINE_AA)
+
         prev_frm = frm
         frm += frm_step
         if step:
@@ -157,8 +162,6 @@ def play_videoFile(filePath, data, vid_sync, data_sync):
 
 
         
-        image = cv2.putText(display_frame, txt_string, org, font, 
-                           fontScale, color, thickness, cv2.LINE_AA)
 
         # Stacking images arrays 
         # display = np.vstack((display_frame, plot_frame))
@@ -245,6 +248,8 @@ def main():
     data = normalize(data)
     video_file = '/Users/tymancjo/LocalGit/video/sc_data_example/11435.mp4'
 
+    data_sync = np.argmax(data[:,-1]==1)
+    print(f"Data v Sync index:{data_sync}")
     play_videoFile(video_file,data,500,500)
 
 if __name__ == '__main__':
